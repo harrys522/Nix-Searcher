@@ -2,6 +2,8 @@
 
 import requests
 import argparse
+import json
+from request_builder import build_packages_request, build_options_request
 from rich.tree import Tree
 from rich.console import Console
 from rich.spinner import Spinner
@@ -12,96 +14,23 @@ headers = {
     'Referer': 'https://search.nixos.org/packages?',
 }
 
-def get_json(**kwargs) -> dict:
-    package_set_filter = []
-    package_set_value = kwargs.get("package_set")
-    if package_set_value:
-        package_set_filter.append({
-            "term":{
-                "package_attr_set": {
-                    "_name": "filter_bucket_package_attr_set",
-                    "value": package_set_value
-                },
-            }
-        })
-
-    license_filter = []
-    license_value = kwargs.get("license")
-    if license_value:
-        license_filter.append({
-            "term": {
-                "package_license_set": {
-                    "_name": "filter_bucket_package_license_set",
-                    "value": license_value
-                }
-            }
-        })
-
-    maintainer_filter = []
-    maintainer_value = kwargs.get("maintainer")
-    if maintainer_value:
-        maintainer_filter.append({
-            "term": {
-                "package_maintainers_set": {
-                    "_name": "filter_bucket_package_maintainers_set",
-                    "value": maintainer_value
-                }
-            }
-        })
-
-    platform_filter = []
-    platform_value = kwargs.get("platform")
-    if platform_value:
-        platform_filter.append({
-            "term": {
-                "package_platforms": {
-                    "_name": "filter_bucket_package_platforms",
-                    "value": platform_value
-                }
-            }
-        })
-
-    json_data = {
-        "from": kwargs.get("begin"),
-        "size": kwargs.get("size"),
-        "query": {
-            "bool": {
-                "filter": [
-                    {"term": {"type": {"value": "package", "_name": "filter_packages"}}},
-                    {"bool": {"must": [
-                        {"bool": {"should": package_set_filter}},
-                        {"bool": {"should": license_filter}},
-                        {"bool": {"should": maintainer_filter}},
-                        {"bool": {"should": platform_filter}}
-                    ]}}
-                ],
-                "must": [
-                    {"dis_max": {
-                        "queries": [
-                            {"multi_match": {
-                                "query": kwargs.get("package"),
-                                "fields": [
-                                    "package_attr_name^9",
-                                    "package_pname^6",
-                                    "package_description^1.3"
-                                ]
-                            }},
-                            {"wildcard": {
-                                "package_attr_name": {
-                                    "value": f"*{kwargs.get('package')}*",
-                                    "case_insensitive": True
-                                }
-                            }}
-                        ]
-                    }}
-                ]
-            }
-        }
-    }
+def get_packages(**kwargs) -> dict:
+    package_json_data = build_packages_request(**kwargs)
                 
-    response = requests.post(f'https://search.nixos.org/backend/latest-42-nixos-{kwargs["channel"]}/_search', headers=headers, json=json_data)
+    response = requests.post(f'https://search.nixos.org/backend/latest-42-nixos-{kwargs["channel"]}/_search', headers=headers, json=package_json_data)
 
     return response.json()
+
+def get_options(**kwargs) -> dict:
+    option_json_data = build_options_request(**kwargs)
+
+    response = requests.post(f'https://search.nixos.org/backend/latest-42-nixos-{kwargs["channel"]}/_search', headers=headers, json=option_json_data)
+
+    return response.json()
+
+def get_flakes() -> dict:
+    # Placeholder for flakes feature
+    pass
 
 def check_sort_order(value):
     if value.lower() not in ['asc', 'desc']:
@@ -141,60 +70,90 @@ package_unfree - License status (for example, free or non-free).
     parser.add_argument("--maintainer", help="Filter by package maintainer", type=str, default=None)
     parser.add_argument("--platform", help="Filter by platform", type=str, default=None)
     parser.add_argument("--info", help="Show detailed info about the package", action="store_true")
+    parser.add_argument("--options", help="Show options of the package", action="store_true")
+    parser.add_argument("--output", help="Output the raw response to a file.", default=None)
     args = parser.parse_args()
 
     console = Console()
 
-    if args.info:
-        kwargs = {"package": args.package, "channel": args.channel}
-        kwargs["begin"] = 0
-        kwargs["size"] = 50
-        kwargs["sort_by"] = "_score"
-        kwargs["sort_order"] = "desc"
-
-        with console.status("[bold green]Making request...", spinner="clock"):
-            json_response = get_json(**kwargs)
-    
-        if (len(json_response.get('hits', {}).get('hits', [])) == 0):
-            print(f"Error: Package \"{args.package}\" not found!")
-
-        for package in json_response.get('hits', {}).get('hits', []):
-            package_info = package.get('_source', {})
-            if package_info.get("package_pname") == args.package:
-                tree = Tree(f"[green]Package name[/]: {package_info.get('package_pname')}", guide_style="underline2")
-                tree.add(f"[blue]Description[/]: {package_info.get('package_description')}")
-                tree.add(f"[blue]Version[/]: {package_info.get('package_pversion')}")
-                mainteiners = ', '.join([f"{entry['name']}" for entry in package_info.get('package_maintainers')])
-                tree.add(f"[blue]Maintainers[/]: {mainteiners}")
-                licenses = '; '.join(f"{entry['fullName']}" for entry in package_info.get('package_license'))
-                tree.add(f"[blue]License[/]: {licenses}")
-                homepages = " ".join(package_info.get('package_homepage'))
-                tree.add(f"[blue]Homepage[/]: [steel_blue1 u]{homepages}")
-                tree.add(f"[blue]Supported Platforms[/]: {', '.join(package_info.get('package_platforms', []))}")
-                tree.add(f"[blue]Status[/]: {'[bright_red]Broken' if package_info.get('package_broken') else '[bright_green]OK'}")
-                tree.add(f"[blue]Security Status[/]: {'[bright_red]Insecure' if package_info.get('package_insecure') else '[bright_green]Secure'}")
-                programs = ', '.join(package_info.get('package_programs', []))
-                tree.add(f"[blue]Package programs[/]: {None if len(programs) == 0 else programs}")
-                tree.add(f"[blue]License Status[/]: {'[bright_yellow]Unfree' if package_info.get('package_unfree') else '[yellow3]Free'}")
-                tree.add(f"[blue]Long Description[/]: {package_info.get('package_longDescription')}")
-                tree.add(f"[blue]Outputs[/]: [bright_cyan]{', '.join(package_info.get('package_outputs'))}")
-                console.print(tree)
-        else:
-            print(f"Error: Package \"{args.package}\" not found!")
-    else:
+    if args.options:
         kwargs = vars(args)
 
-        with console.status("[bold green]Making request...", spinner="clock"):
-            json_response = get_json(**kwargs)
+        with console.status("[bold green]Making request for options...", spinner="clock"):
+            json_response = get_options(**kwargs)
+
+        # If it hits any, write the response to json for debugging
+        with open(args.output, 'w') as f:
+            f.write(json.dumps(json_response, indent=4))
 
         if (len(json_response.get('hits', {}).get('hits', [])) == 0):
-            print(f"Error: Package \"{args.package}\" not found!")    
+            print(f"Error: Package \"{args.package}\" not found!")
+            print(json_response)    
 
         for package in json_response.get('hits', {}).get('hits', []):
             package_info = package.get('_source')
 
-            tree = Tree(f"[green]Package name[/]: {package_info.get('package_pname')}")
-            tree.add(f"[blue]Description[/]: {package_info.get('package_description')}")
-            tree.add(f"[blue]Version[/]: {package_info.get('package_pversion')}")
-            console.print(tree)
-    
+            tree = Tree(f"[green]Package name[/]: {package_info.get('option_name')}")
+            tree.add(f"[blue]Description[/]: {package_info.get('option_description')}")
+            tree.add(f"[blue]Type[/]: {package_info.get('option_type')}")
+            tree.add(f"[blue]Default[/]: {package_info.get('option_default')}")
+            #console.print(tree)
+    else:
+
+        if args.info:
+            kwargs = {"package": args.package, "channel": args.channel}
+            kwargs["begin"] = 0
+            kwargs["size"] = 50
+            kwargs["sort_by"] = "_score"
+            kwargs["sort_order"] = "desc"
+
+            with console.status("[bold green]Making request...", spinner="clock"):
+                packages_response = get_packages(**kwargs) 
+        
+            if (len(packages_response.get('hits', {}).get('hits', [])) == 0):
+                print(f"Error: Package \"{args.package}\" not found!")
+
+            for package in packages_response.get('hits', {}).get('hits', []):
+                package_info = package.get('_source', {})
+                if package_info.get("package_pname") == args.package:
+                    tree = Tree(f"[green]Package name[/]: {package_info.get('package_pname')}", guide_style="underline2")
+                    tree.add(f"[blue]Description[/]: {package_info.get('package_description')}")
+                    tree.add(f"[blue]Version[/]: {package_info.get('package_pversion')}")
+                    mainteiners = ', '.join([f"{entry['name']}" for entry in package_info.get('package_maintainers')])
+                    tree.add(f"[blue]Maintainers[/]: {mainteiners}")
+                    licenses = '; '.join(f"{entry['fullName']}" for entry in package_info.get('package_license'))
+                    tree.add(f"[blue]License[/]: {licenses}")
+                    homepages = " ".join(package_info.get('package_homepage'))
+                    tree.add(f"[blue]Homepage[/]: [steel_blue1 u]{homepages}")
+                    tree.add(f"[blue]Supported Platforms[/]: {', '.join(package_info.get('package_platforms', []))}")
+                    tree.add(f"[blue]Status[/]: {'[bright_red]Broken' if package_info.get('package_broken') else '[bright_green]OK'}")
+                    tree.add(f"[blue]Security Status[/]: {'[bright_red]Insecure' if package_info.get('package_insecure') else '[bright_green]Secure'}")
+                    programs = ', '.join(package_info.get('package_programs', []))
+                    tree.add(f"[blue]Package programs[/]: {None if len(programs) == 0 else programs}")
+                    tree.add(f"[blue]License Status[/]: {'[bright_yellow]Unfree' if package_info.get('package_unfree') else '[yellow3]Free'}")
+                    tree.add(f"[blue]Long Description[/]: {package_info.get('package_longDescription')}")
+                    tree.add(f"[blue]Outputs[/]: [bright_cyan]{', '.join(package_info.get('package_outputs'))}")
+                    console.print(tree)
+            if not tree:
+                print(f"Error: Package \"{args.package}\" not found!")
+        else:
+            kwargs = vars(args)
+
+            with console.status("[bold green]Making request...", spinner="clock"):
+                json_response = get_packages(**kwargs)
+
+            # If it hits any, write the response to json for debugging
+            with open('reponse.json', 'w') as f:
+                f.write(json.dumps(json_response, indent=4))
+
+            if (len(json_response.get('hits', {}).get('hits', [])) == 0):
+                print(f"Error: Package \"{args.package}\" not found!")    
+
+            for package in json_response.get('hits', {}).get('hits', []):
+                package_info = package.get('_source')
+
+                tree = Tree(f"[green]Package name[/]: {package_info.get('package_pname')}")
+                tree.add(f"[blue]Description[/]: {package_info.get('package_description')}")
+                tree.add(f"[blue]Version[/]: {package_info.get('package_pversion')}")
+                console.print(tree)
+        

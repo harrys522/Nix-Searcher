@@ -14,11 +14,13 @@ nix-searcher [options] package
 
 ### Positional Arguments
 
-- `package`: The name of the package to search for.
+- `search_term`: The name of the term to search for.
 
 ### Options
 
 - `-h, --help`: Show help message and exit.
+- `--packages`: Show hits for packages.
+- `--options`: Show hits for module options.
 - `--size SIZE`: Number of results to return.
 - `--begin BEGIN`: Starting position of results.
 - `--channel CHANNEL`: NixOS channel to search in.
@@ -29,6 +31,7 @@ nix-searcher [options] package
 - `--maintainer MAINTAINER`: Filter by package maintainer.
 - `--platform PLATFORM`: Filter by platform.
 - `--info`: Show detailed info about the package.
+- `--option-set OPTION_SET`: Filter by option set.
 
 ### Sorting Fields
 
@@ -48,6 +51,11 @@ nix-searcher [options] package
 - `package_broken`: The status of the package (e.g., broken or not).
 - `package_insecure`: Security status of the package.
 - `package_unfree`: License status (e.g., free or non-free).
+
+### Package sets
+
+
+### Package sets
 
 ## Examples
 
