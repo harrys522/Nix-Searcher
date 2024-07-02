@@ -71,7 +71,7 @@ package_unfree - License status (for example, free or non-free).
     parser.add_argument("--platform", help="Filter by platform", type=str, default=None)
     parser.add_argument("--info", help="Show detailed info about the package", action="store_true")
     parser.add_argument("--options", help="Show options of the package", action="store_true")
-    parser.add_argument("--output", help="Output the raw response to a file.", default=None)
+    parser.add_argument("--output", help="Output the raw response to a file.", default='json_response.json')
     args = parser.parse_args()
 
     console = Console()

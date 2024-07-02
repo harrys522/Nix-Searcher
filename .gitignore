@@ -23,6 +23,10 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Data pipeline & debugging
+*.json
+data
+
 # Environments
 .env
 .venv
