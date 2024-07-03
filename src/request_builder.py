@@ -1,4 +1,8 @@
-def build_packages_request(**kwargs) -> dict:
+def build_packages_request(search_term=None, **kwargs) -> dict:
+    if kwargs.get("package") is not None:
+        package = kwargs.get("package")
+    elif search_term is not None:
+        package = search_term
     package_set_filter = []
     package_set_value = kwargs.get("package_set")
     if package_set_value:
@@ -65,7 +69,7 @@ def build_packages_request(**kwargs) -> dict:
                     {"dis_max": {
                         "queries": [
                             {"multi_match": {
-                                "query": kwargs.get("package"),
+                                "query": package,
                                 "fields": [
                                     "package_attr_name^9",
                                     "package_pname^6",

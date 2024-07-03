@@ -37,29 +37,28 @@ def check_sort_order(value):
         raise argparse.ArgumentTypeError("Sort order must be 'asc' or 'desc'")
     return value.lower()
 
-
-if __name__ == "__main__":
+def start_up():
     sort_by_help_msg = """Field to sort by:
-_score - Rating of match between the query and the result.
-package_pname - Package name.
-package_pversion - Package version.
-package_attr_name - Attribute name of the package.
-package_maintainers - Package maintainers.
-package_license - Package license.
-package_description - Description of the package.
-package_homepage - Home page of the package.
-package_system - Target system (for example, x86_64-linux).
-package_platforms - Supported platforms.
-package_position - The position of the package in the repository.
-package_longDescription - Long description of the package.
-package_outputs - Package outputs (eg bin, lib).
-package_broken - The status of the package (for example, broken or not).
-package_insecure - Security status of the package.
-package_unfree - License status (for example, free or non-free).
+        _score - Rating of match between the query and the result.
+        package_pname - Package name.
+        package_pversion - Package version.
+        package_attr_name - Attribute name of the package.
+        package_maintainers - Package maintainers.
+        package_license - Package license.
+        package_description - Description of the package.
+        package_homepage - Home page of the package.
+        package_system - Target system (for example, x86_64-linux).
+        package_platforms - Supported platforms.
+        package_position - The position of the package in the repository.
+        package_longDescription - Long description of the package.
+        package_outputs - Package outputs (eg bin, lib).
+        package_broken - The status of the package (for example, broken or not).
+        package_insecure - Security status of the package.
+        package_unfree - License status (for example, free or non-free).
     """
 
     parser = argparse.ArgumentParser(description="NixOS packages search", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("package", help="The package to search", type=str)
+    parser.add_argument("--package", help="The package to search", type=str)
     parser.add_argument("--size", help="Number of results to return", type=int, default=50)
     parser.add_argument("--begin", help="Starting position of results", type=int, default=0)
     parser.add_argument("--channel", help="NixOS channel to search in", type=str, default="24.05")
@@ -73,7 +72,12 @@ package_unfree - License status (for example, free or non-free).
     parser.add_argument("--options", help="Show options of the package", action="store_true")
     parser.add_argument("--output", help="Output the raw response to a file.", default='json_response.json')
     args = parser.parse_args()
+    
+    return sort_by_help_msg, args
 
+def main():
+    sort_by_help_msg, args = start_up()
+    
     console = Console()
 
     if args.options:
@@ -157,3 +161,5 @@ package_unfree - License status (for example, free or non-free).
                 tree.add(f"[blue]Version[/]: {package_info.get('package_pversion')}")
                 console.print(tree)
         
+if __name__ == "__main__":
+    main()
