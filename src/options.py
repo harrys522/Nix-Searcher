@@ -4,11 +4,11 @@ import html
 
 def remove_html_tags(text):
     # Function needs to be improved
-    clean_text = re.sub(r'<[^>]+>', '', text)
+    clean_text = re.sub(r'<[^>]+>', ' ', text)
     # Convert HTML entities to characters
     clean_text = html.unescape(clean_text)
     clean_text = clean_text.replace('\n', '')
-    return clean_text
+    return clean_text.strip(' ')
 
 
 def parse_option(hit):
@@ -31,6 +31,7 @@ def get_service_options():
         service_options_list.append(options_for_letter)
     # List of lists for each letter, transform into single list
     service_options_list = [item for sublist in service_options_list for item in sublist]
+    write_svc_opts(service_options_list)
 
     return service_options_list
 
@@ -44,6 +45,6 @@ def get_options(search_data_path):
             options_list.append(option)
     return options_list
 
-def write_svc_opts():
+def write_svc_opts(svc_opts_list):
     with open('data/service-options.json', 'w') as file:
-        file.write(json.dumps(get_service_options(), indent=4))
+        file.write(json.dumps(svc_opts_list, indent=4))

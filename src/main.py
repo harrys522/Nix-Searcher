@@ -58,7 +58,7 @@ def start_up():
     """
 
     parser = argparse.ArgumentParser(description="NixOS packages search", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--package", help="The package to search", type=str)
+    parser.add_argument("package", help="The package to search", type=str)
     parser.add_argument("--size", help="Number of results to return", type=int, default=50)
     parser.add_argument("--begin", help="Starting position of results", type=int, default=0)
     parser.add_argument("--channel", help="NixOS channel to search in", type=str, default="24.05")
