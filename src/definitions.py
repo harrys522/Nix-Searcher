@@ -34,6 +34,7 @@ def create_module_definitions(option_list):
             modules.append(module_name)
             mod_def = {
                 "name": module_name,
+                "nixName": module_name,
                 "options":[option]
             }
             module_definitions.append(mod_def)
