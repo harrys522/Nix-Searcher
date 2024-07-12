@@ -42,7 +42,7 @@ def create_module_definitions(option_list):
     return module_definitions
 
 def make_service_definitions():
-    module_types = ['boot', 'hardware', 'networking', 'programs', 'system', 'virtualisation', 'security']
+    module_types = ['boot', 'hardware', 'networking', 'programs', 'system', 'virtualisation', 'security', 'users.users']
     svc = get_service_options()
     print(type(svc), len(svc))
     # The goal for config_definitions is to create a list of modules with a good description typically pulled from the package info and an accurate options list.

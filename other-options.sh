@@ -1,5 +1,5 @@
 #!/bin/bash
-modules=('boot' 'config' 'hardware' 'networking' 'programs' 'system' 'virtualisation' 'security')
+modules=('boot' 'config' 'hardware' 'networking' 'programs' 'system' 'virtualisation' 'security' 'users.users')
 # Loop through each defined module type
 for module in "${modules[@]}"
 do
