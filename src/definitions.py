@@ -18,10 +18,10 @@ def create_module_definitions(option_list):
         option["nixName"] = option_name
         option["name"] = option_name
 
+        if option['nixName'] == 'enable':
+            option['value'] = 'true'
+
         if module_name in modules:
-            # Add the option to the existing module's option list
-            # module = get_module_info(module_name)
-            #print(module_name)
             for mod_def in module_definitions:
                 if type(mod_def) is dict:
                     if mod_def["name"] == module_name:
@@ -59,4 +59,5 @@ def make_service_definitions():
             file.write(json.dumps(config_definitions, indent=4))
 
     write_svc_defs()
+
 make_service_definitions()
